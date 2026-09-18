@@ -28,7 +28,7 @@ def setup_logger(name: str, log_level=logging.INFO) -> logging.Logger:
     logger.setLevel(log_level)
 
     # Create logs directory if it doesn't exist
-    logs_dir = get_project_root() / "logs"
+    logs_dir = get_project_root() / "logs" / name
     logs_dir.mkdir(exist_ok=True)
 
     # Log file name with timestamp

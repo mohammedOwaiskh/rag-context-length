@@ -7,7 +7,9 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer
 
 from utils import load_config, get_project_root
+from utils.logger import setup_logger
 
+log = setup_logger("retrieve")
 
 def load_index_and_order(cfg: dict):
     index_path = get_project_root() / cfg["corpus"]["paths"]["faiss_index"]
@@ -22,7 +24,7 @@ def load_index_and_order(cfg: dict):
 
 def embed_questions(questions_df: pd.DataFrame, model_name: str) -> np.ndarray:
     model = SentenceTransformer(model_name)
-    print(f"Encoding {len(questions_df)} questions with {model_name}...")
+    log.info(f"Encoding {len(questions_df)} questions with {model_name}...")
     embeddings = model.encode(
         questions_df["question"].tolist(),
         show_progress_bar=True,
@@ -84,16 +86,16 @@ def main():
     with open(out_path, "w") as f:
         for r in records:
             f.write(json.dumps(r) + "\n")
-    print(f"Saved per-question retrieval records to {out_path}")
+    log.info(f"Saved per-question retrieval records to {out_path}")
 
     recall = compute_recall_at_k(records, cfg["retrieval"]["k_values"])
-    print("\nRecall@k")
-    print("--------")
+    log.info("\nRecall@k")
+    log.info("--------")
     for k, v in recall.items():
-        print(f"Recall@{k:>2}: {v:.4f}")
+        log.info(f"Recall@{k:>2}: {v:.4f}")
 
     n_never_retrieved = sum(1 for r in records if r["gold_rank"] == -1)
-    print(f"\nGold passage never in top-20 for {n_never_retrieved}/{len(records)} questions "
+    log.info(f"\nGold passage never in top-20 for {n_never_retrieved}/{len(records)} questions "
           f"({n_never_retrieved / len(records):.2%})")
 
 if __name__ == "__main__":

@@ -1,12 +1,10 @@
-from pathlib import Path
-
 import pandas as pd
 from datasets import load_dataset
 
 from utils import load_config, passage_id, get_project_root
 from utils.logger import setup_logger
 
-log = setup_logger(__name__)
+log = setup_logger("build_corpus")
 
 
 def build_corpus(cfg: dict):

@@ -7,11 +7,13 @@ import pandas as pd
 from sentence_transformers import SentenceTransformer
 
 from utils import load_config, get_project_root
+from utils.logger import setup_logger
 
+log = setup_logger("embed_corpus")
 
 def embed_passages(df: pd.DataFrame, model_name: str, batch_size: int) -> np.ndarray:
     model = SentenceTransformer(model_name)
-    print(f"Encoding {len(df)} passages with {model_name} (batch_size={batch_size})...")
+    log.info(f"Encoding {len(df)} passages with {model_name} (batch_size={batch_size})...")
     embeddings = model.encode(
         df["text"].tolist(),
         batch_size=batch_size,
@@ -26,7 +28,7 @@ def build_faiss_index(embeddings: np.ndarray) -> faiss.Index:
     dim = embeddings.shape[1]
     index = faiss.IndexFlatIP(dim)
     index.add(embeddings)
-    print(f"FAISS IndexFlatIP built: {index.ntotal} vectors, dim={dim}")
+    log.info(f"FAISS IndexFlatIP built: {index.ntotal} vectors, dim={dim}")
     return index
 
 
@@ -46,13 +48,13 @@ def main():
 
     Path(index_path).parent.mkdir(parents=True, exist_ok=True)
     faiss.write_index(index, str(index_path))
-    print(f"Saved FAISS index to {index_path}")
+    log.info(f"Saved FAISS index to {index_path}")
 
     # Save the row order the index was built with, so retrieve.py can map
     # FAISS integer positions back to passage_id unambiguously.
     order_path = Path(index_path).with_suffix(".order.parquet")
     df[["passage_id"]].reset_index(drop=True).to_parquet(order_path, index=False)
-    print(f"Saved index row order to {order_path}")
+    log.info(f"Saved index row order to {order_path}")
 
 
 if __name__ == "__main__":

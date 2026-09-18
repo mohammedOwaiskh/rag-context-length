@@ -4,7 +4,9 @@ import pandas as pd
 from datasets import load_dataset
 
 from utils import load_config, passage_id, get_project_root
+from utils.logger import setup_logger
 
+log = setup_logger("sample_questions")
 
 def sample_questions(cfg: dict) -> pd.DataFrame:
     ds = load_dataset("rajpurkar/squad", split=cfg["dataset"]["hf_split"])
@@ -23,7 +25,7 @@ def sample_questions(cfg: dict) -> pd.DataFrame:
         })
 
     df = pd.DataFrame(rows)
-    print(f"Sampled {len(df)} questions (seed={cfg['sampling']['seed']})")
+    log.info(f"Sampled {len(df)} questions (seed={cfg['sampling']['seed']})")
     return df
 
 
@@ -38,7 +40,7 @@ def verify_gold_linkage(questions_df: pd.DataFrame, corpus_path: str):
             f"{n_missing} questions have a gold_passage_id not present in the "
             f"corpus. Run build_corpus.py from the same dataset/split first."
         )
-    print("Gold passage linkage verified: all questions map to a corpus passage.")
+    log.info("Gold passage linkage verified: all questions map to a corpus passage.")
 
 
 def main():
@@ -51,7 +53,7 @@ def main():
     verify_gold_linkage(df, get_project_root() / cfg["corpus"]["paths"]["passages"])
 
     df.to_parquet(out_path, index=False)
-    print(f"Saved sampled questions to {out_path}")
+    log.info(f"Saved sampled questions to {out_path}")
 
 
 if __name__ == "__main__":
