@@ -1,0 +1,32 @@
+# Core
+numpy
+pandas
+pyyaml
+tqdm
+
+# Dataset
+datasets
+
+# Retrieval
+sentence-transformers
+faiss-cpu
+
+# Generation — GPU backend (Colab T4)
+transformers
+accelerate
+bitsandbytes
+torch
+
+# Generation — CPU-only backend
+# llama-cpp-python
+
+# Evaluation
+evaluate
+
+# Analysis / plotting
+matplotlib
+scipy
+
+# Notebook support
+jupyter
+ipykernel

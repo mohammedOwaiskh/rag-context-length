@@ -1,14 +1,12 @@
-# rag-context-length
+# Impact of Context Length on RAG
 
 **How Much Context Is Enough? Investigating the Impact of Retrieval Context Length on RAG-Based Question Answering**
 
-A controlled, lightweight RAG experiment for a Master's-level NLP course project. We measure how the number of retrieved passages (`k`) fed to a generator affects downstream QA performance, and separate *retrieval success* from *generation/context-utilization success*.
+A controlled RAG experiment measuring how the number of retrieved passages (`k`) fed to a generator affects downstream QA performance, with retrieval success and generation success analyzed separately.
 
 ## Research question
 
-> Does increasing the number of retrieved passages consistently improve answer quality, or is there an optimal retrieval context size beyond which additional context becomes ineffective or harmful?
-
-We test this without assuming the answer in advance. Four hypotheses are on the table — context saturation, context noise, retrieval/generation divergence, and (optionally) question-complexity sensitivity — and the poster's conclusion is written only after the data is in.
+Does increasing the number of retrieved passages consistently improve answer quality, or is there an optimal retrieval context size beyond which additional context becomes ineffective or harmful?
 
 ## Pipeline
 
@@ -16,7 +14,7 @@ We test this without assuming the answer in advance. Four hypotheses are on the 
 Question → MiniLM embedding → FAISS top-20 retrieval → top-k context slice → Qwen2.5-3B-Instruct → generated answer → EM / F1
 ```
 
-## Method summary
+## Method
 
 | Component | Choice |
 |---|---|
@@ -48,29 +46,30 @@ poster/          final figures and references
 ## Setup
 
 ```bash
-git clone https://github.com/<your-username>/rag-context-length.git
+git clone https://github.com/mohammedOwaiskh/rag-context-length.git
 cd rag-context-length
 pip install -r requirements.txt
 ```
 
-For CPU-only local runs, additionally install the GGUF backend (kept out of the default requirements since it needs a compiled build):
+[//]: # (For CPU-only local runs, additionally install the GGUF backend:)
 
-```bash
-pip install llama-cpp-python==0.2.90
-```
+[//]: # ()
+[//]: # (```bash)
+
+[//]: # (pip install llama-cpp-python==0.2.90)
+
+[//]: # (```)
 
 ## Running the pipeline
-
-Run phases in order — each gates the next.
 
 ```bash
 # Phase 1 — retrieval baseline
 python retrieval/build_corpus.py
 python retrieval/sample_questions.py
 python retrieval/embed_corpus.py
-python retrieval/retrieve.py          # prints Recall@k, sanity-check before continuing
+python retrieval/retrieve.py          # prints Recall@k
 
-# Phase 2 — pilot (75 questions, all k, before committing to full inference)
+# Phase 2 — pilot (75 questions, all k)
 python experiments/run_pilot.py
 
 # Phase 3 — main experiment (1,500 questions × 5 k-values)
@@ -82,41 +81,44 @@ python evaluation/aggregate.py
 # Phase 5 — distractor experiment
 python experiments/run_distractor_experiment.py
 
-# Phase 6 — (optional) evidence-position experiment, only after core experiments
+# Phase 6 — evidence-position experiment (optional)
 python experiments/run_position_experiment.py
 ```
 
-On Colab, use `notebooks/colab_runner.ipynb`, which calls the same scripts — no logic is duplicated between notebook and CLI paths.
+On Colab, use `notebooks/colab_runner.ipynb`, which calls the same scripts.
 
-Do not skip the pilot. It checks memory, generation speed, context-window headroom, prompt behavior, metric correctness, and JSONL resume logic before the expensive full run starts.
+## Experimental design
 
-## What's fixed vs. what varies
-
-Everything is held constant across k-conditions except the number of retrieved passages: retriever, embedding model, generator, prompt template, generation settings, and question set. This isolates retrieval depth as the sole independent variable in the main experiment. The distractor experiment additionally isolates *context noise* from *retrieval depth* by holding one relevant passage fixed and varying only the number of irrelevant passages added alongside it.
+Retriever, embedding model, generator, prompt template, generation settings, and question set are held fixed across all k-conditions, isolating retrieval depth as the independent variable. A separate distractor experiment holds one relevant passage fixed and varies only the number of irrelevant passages added alongside it, isolating context noise from retrieval depth.
 
 ## Key analyses
 
 - **Main table:** Recall@k, EM, F1, and average context token count at each k.
-- **Conditional F1:** answer F1 restricted to questions where the gold passage *was* retrieved — isolates generation/context-utilization failures from retrieval failures.
+- **Conditional F1:** answer F1 restricted to questions where the gold passage was retrieved — separates generation/context-utilization failures from retrieval failures.
 - **Distractor curve:** answer quality as irrelevant context is added while relevant evidence stays present.
-- **Error analysis:** 100–150 manually reviewed examples, prioritizing questions that flip from correct to incorrect as `k` increases.
+- **Error analysis:** manually reviewed examples, prioritizing questions that flip from correct to incorrect as `k` increases.
 
 ## Reproducibility
 
 - Fixed seed (`42`) for question sampling and distractor selection.
 - Deterministic generation (`do_sample=False`, `temperature=0`).
 - Retrieval computed once at top-20 and sliced, not re-queried per k.
-- Per-question raw outputs (not just aggregates) saved as JSONL after every generation call, so no expensive inference is ever repeated.
+- Per-question raw outputs saved as JSONL after every generation call.
 - Full config, library versions, and hardware recorded per run in `config.yaml`.
-
-## Non-goals
-
-This project is scoped to retrieval context length only. It does **not** cover chunking strategy, embedding-model comparison, vector-DB comparison, fine-tuning, multiple generator models, agentic or Self-RAG, or multimodal/multilingual RAG.
 
 ## Limitations
 
-Single QA dataset (SQuAD v1.1, primarily extractive), single embedding model, single retriever, single generator. Passage count is only an approximation of true context length (token counts are also recorded and reported separately). The generator may have seen SQuAD during pretraining, so results should be read as relative comparisons across context conditions rather than claims about unseen-world QA accuracy. Findings are specific to this experimental setup and are not claimed to generalize to all RAG systems.
+Single QA dataset (SQuAD v1.1, primarily extractive), single embedding model, single retriever, single generator. Passage count is only an approximation of true context length (token counts are also recorded separately). The generator may have seen SQuAD during pretraining, so results are read as relative comparisons across context conditions rather than claims about unseen-world QA accuracy.
+
+## Authors
+
+- Mohammed Owais Khan
+- Zaina Naaz Mohd Kalim Ansari
+
+*Term paper submitted for the Trends in Natural Language Processing module.*
+
+---
 
 ## License
 
-Course project — add a license if/when you intend to share beyond the course.
+[MIT LICENSE](./LICENSE) — free to use, adapt, and build upon with attribution.

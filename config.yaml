@@ -1,0 +1,89 @@
+# rag-context-length — frozen experiment configuration
+
+dataset:
+  name: squad
+  version: "1.1"
+  hf_split: train
+
+sampling:
+  n_questions: 1500
+  seed: 42
+
+corpus:
+  source: full_train_split_contexts
+  dedup_method: exact_text_match
+  passage_id_scheme: "sha256(text)[:12]"
+  paths:
+    passages: data/corpus/passages.parquet
+    faiss_index: data/corpus/faiss_index.bin
+  questions_path: data/questions/sampled_1500.parquet
+
+retrieval:
+  embedding_model: sentence-transformers/all-MiniLM-L6-v2
+  embedding_normalization: l2
+  similarity: cosine_via_inner_product
+  faiss_index_type: IndexFlatIP
+  embedding_batch_size: 64
+  top_k_retrieved: 20
+  k_values: [1, 3, 5, 10, 20]
+
+generation:
+  backend: hf_bnb   # hf_bnb (GPU, Colab T4) | llama_cpp_gguf (CPU-only)
+  model:
+    hf_bnb: Qwen/Qwen2.5-3B-Instruct
+    llama_cpp_gguf: Qwen/Qwen2.5-3B-Instruct-GGUF   # Q4_K_M quant
+    cpu_fallback: Qwen/Qwen2.5-1.5B-Instruct
+  quantization:
+    hf_bnb: 4bit_nf4
+    llama_cpp_gguf: Q4_K_M
+  tokenizer: matches_generator_model_exactly
+  context_window: 32768
+  generation_config:
+    do_sample: false
+    temperature: 0
+    max_new_tokens: null       # TBD — fix during pilot
+    repetition_penalty: null   # TBD — fix during pilot
+
+prompt:
+  template: |
+    You are a question answering system.
+
+    Answer the question using only the information provided in the context.
+
+    If the answer cannot be determined from the context, say that the answer cannot be determined.
+
+    Context:
+    {retrieved_context}
+
+    Question:
+    {question}
+
+    Answer:
+
+evaluation:
+  normalization: squad_standard   # lowercase, remove punctuation, remove articles, normalize whitespace
+  metrics_library: huggingface_evaluate
+  metric_name: squad
+
+distractor_experiment:
+  seed: 42
+  conditions:
+    - {name: D0, relevant: 1, distractors: 0}
+    - {name: D1, relevant: 1, distractors: 1}
+    - {name: D3, relevant: 1, distractors: 3}
+    - {name: D5, relevant: 1, distractors: 5}
+    - {name: D9, relevant: 1, distractors: 9}
+
+pilot:
+  n_questions: 75
+  selection: first_75_of_sampled_1500
+
+paths:
+  results_dir: results/
+  pilot_results_dir: results/pilot/
+  main_results_dir: results/main/
+  distractor_results_dir: results/distractor/
+
+reproducibility:
+  library_versions: null   # TBD — fill after environment setup
+  hardware: null           # TBD — fill per actual run, e.g. "Colab T4" or "local CPU, 16GB RAM"
