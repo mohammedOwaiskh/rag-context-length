@@ -9,7 +9,7 @@ def get_project_root() -> Path:
     return Path(__file__).parent.parent.parent
 
 
-def load_config(path: str = "../config.yaml") -> dict:
+def load_config(path: str | Path = get_project_root() / "config.yaml") -> dict:
     with open(path, "r") as f:
         return yaml.safe_load(f)
 

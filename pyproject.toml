@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rag-context-length"
+version = "0.1.0"
+description = "How Much Context Is Enough? Investigating the Impact of Retrieval Context Length on RAG-Based Question Answering"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Mohammed Owais Khan" },
+    { name = "Zaina Naaz Mohd Kalim Ansari" },
+]
+
+dependencies = [
+    "numpy==1.26.4",
+    "pandas==2.2.2",
+    "pyyaml==6.0.1",
+    "tqdm==4.66.4",
+    "datasets==2.20.0",
+    "sentence-transformers==3.0.1",
+    "faiss-cpu==1.8.0",
+    "transformers==4.44.2",
+    "accelerate==0.33.0",
+    "bitsandbytes==0.43.3",
+    "torch==2.4.0",
+    "evaluate==0.4.2",
+    "matplotlib==3.9.1",
+    "scipy==1.14.0",
+]
+
+[project.optional-dependencies]
+cpu = [
+    "llama-cpp-python==0.2.90",
+]
+notebook = [
+    "jupyter==1.0.0",
+    "ipykernel==6.29.5",
+]
+
+[project.urls]
+Repository = "https://github.com/mohammedOwaiskh/rag-context-length"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["retrieval*", "generation*", "evaluation*", "experiments*"]

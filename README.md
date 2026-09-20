@@ -1,5 +1,6 @@
 # Impact of Context Length on RAG
 
+
 **How Much Context Is Enough? Investigating the Impact of Retrieval Context Length on RAG-Based Question Answering**
 
 A controlled RAG experiment measuring how the number of retrieved passages (`k`) fed to a generator affects downstream QA performance, with retrieval success and generation success analyzed separately.
@@ -32,13 +33,14 @@ Full configuration is frozen in [`config.yaml`](./config.yaml) — every script 
 ## Repository structure
 
 ```
-data/            corpus, FAISS index, sampled question set
-retrieval/       corpus construction, embedding, indexing, Recall@k
-generation/      prompt template, model backend, generation loop
-evaluation/      normalization, EM/F1, per-k and conditional-F1 aggregation
-experiments/     pilot, main k-sweep, distractor experiment, optional position experiment
-results/         per-question JSONL outputs, per-k experiment tables, plots
-error_analysis/  manual inspection of 100–150 failure/transition examples
+config.yaml
+data/                    corpus, FAISS index, sampled question set
+src/
+├── retrieval/           corpus construction, embedding, indexing, Recall@k
+├── generation/           prompt template, model backend, generation loop
+├── evaluation/           normalization, EM/F1, per-k and conditional-F1 aggregation
+└── experiments/          pilot, main k-sweep, distractor experiment, optional position experiment
+results/                 per-question JSONL outputs, per-k experiment tables
 notebooks/       Colab-ready wrapper around the scripts
 poster/          final figures and references
 ```
@@ -48,41 +50,42 @@ poster/          final figures and references
 ```bash
 git clone https://github.com/mohammedOwaiskh/rag-context-length.git
 cd rag-context-length
-pip install -r requirements.txt
+pip install -e .
 ```
 
-[//]: # (For CPU-only local runs, additionally install the GGUF backend:)
+The editable install puts `retrieval`, `generation`, `evaluation`, and `experiments` on the path as top-level packages (src-layout), so the modules can be run from anywhere in the repo with `python -m`.
 
-[//]: # ()
-[//]: # (```bash)
+For CPU-only local runs, additionally install the GGUF backend:
 
-[//]: # (pip install llama-cpp-python==0.2.90)
-
-[//]: # (```)
+```bash
+pip install -e ".[cpu]"
+```
 
 ## Running the pipeline
 
+Run from the repo root, so each script finds `config.yaml`.
+
 ```bash
 # Phase 1 — retrieval baseline
-python retrieval/build_corpus.py
-python retrieval/sample_questions.py
-python retrieval/embed_corpus.py
-python retrieval/retrieve.py          # prints Recall@k
+python -m retrieval.build_corpus
+python -m retrieval.sample_questions
+python -m retrieval.embed_corpus
+python -m retrieval.retrieve          # prints Recall@k
 
 # Phase 2 — pilot (75 questions, all k)
-python experiments/run_pilot.py
+python -m experiments.run_pilot
 
 # Phase 3 — main experiment (1,500 questions × 5 k-values)
-python experiments/run_main_experiment.py
+python -m experiments.run_main_experiment
 
 # Phase 4 — aggregate results
-python evaluation/aggregate.py
+python -m evaluation.aggregate
 
 # Phase 5 — distractor experiment
-python experiments/run_distractor_experiment.py
+python -m experiments.run_distractor_experiment
 
 # Phase 6 — evidence-position experiment (optional)
-python experiments/run_position_experiment.py
+python -m experiments.run_position_experiment
 ```
 
 On Colab, use `notebooks/colab_runner.ipynb`, which calls the same scripts.
@@ -117,8 +120,6 @@ Single QA dataset (SQuAD v1.1, primarily extractive), single embedding model, si
 
 *Term paper submitted for the Trends in Natural Language Processing module.*
 
----
-
 ## License
 
-[MIT LICENSE](./LICENSE) — free to use, adapt, and build upon with attribution.
+MIT — see [LICENSE](./LICENSE).
