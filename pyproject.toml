@@ -15,29 +15,29 @@ authors = [
 ]
 
 dependencies = [
-    "numpy==1.26.4",
-    "pandas==2.2.2",
-    "pyyaml==6.0.1",
-    "tqdm==4.66.4",
-    "datasets==2.20.0",
-    "sentence-transformers==3.0.1",
-    "faiss-cpu==1.8.0",
-    "transformers==4.44.2",
-    "accelerate==0.33.0",
-    "bitsandbytes==0.43.3",
-    "torch==2.4.0",
-    "evaluate==0.4.2",
-    "matplotlib==3.9.1",
-    "scipy==1.14.0",
+    "numpy",
+    "pandas",
+    "pyyaml",
+    "tqdm",
+    "datasets",
+    "sentence-transformers",
+    "faiss-cpu",
+    "transformers",
+    "accelerate",
+    "bitsandbytes",
+    "torch",
+    "evaluate",
+    "matplotlib",
+    "scipy",
 ]
 
 [project.optional-dependencies]
 cpu = [
-    "llama-cpp-python==0.2.90",
+    "llama-cpp-python",
 ]
 notebook = [
-    "jupyter==1.0.0",
-    "ipykernel==6.29.5",
+    "jupyter",
+    "ipykernel",
 ]
 
 [project.urls]

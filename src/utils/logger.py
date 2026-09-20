@@ -29,7 +29,7 @@ def setup_logger(name: str, log_level=logging.INFO) -> logging.Logger:
 
     # Create logs directory if it doesn't exist
     logs_dir = get_project_root() / "logs" / name
-    logs_dir.mkdir(exist_ok=True)
+    logs_dir.mkdir(parents=True,exist_ok=True)
 
     # Log file name with timestamp
     log_file = logs_dir / f"app_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
