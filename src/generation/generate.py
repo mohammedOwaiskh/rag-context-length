@@ -6,7 +6,7 @@ import pandas as pd
 from evaluation.metrics import compute_em_f1, postprocess_generation
 
 
-def load_retrieval_records(path: str | Path) -> dict:
+def load_retrieval_records(path: str) -> dict:
     """question_id -> retrieval record dict."""
     records = {}
     with open(path, "r") as f:
@@ -16,12 +16,23 @@ def load_retrieval_records(path: str | Path) -> dict:
     return records
 
 
+def load_already_done(out_path: str) -> set:
+    """question_ids already written to out_path, so a resumed run skips them."""
+    done = set()
+    if Path(out_path).exists():
+        with open(out_path, "r") as f:
+            for line in f:
+                if line.strip():
+                    done.add(json.loads(line)["question_id"])
+    return done
+
+
 def run_generation(
-    cfg: dict,
-    backend,
-    k: int,
-    question_ids: list[str],
-    out_path: str,
+        cfg: dict,
+        backend,
+        k: int,
+        question_ids: list[str],
+        out_path: str,
 ):
     questions_df = pd.read_parquet(cfg["corpus"]["questions_path"]).set_index(
         "question_id", drop=False
@@ -34,10 +45,16 @@ def run_generation(
 
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
 
+    already_done = load_already_done(out_path)
+    remaining_ids = [qid for qid in question_ids if qid not in already_done]
+    if already_done:
+        print(f"Resuming: {len(already_done)} already done, "
+              f"{len(remaining_ids)} remaining for k={k}")
+
     from generation.prompt_template import build_prompt  # local import avoids circularity
 
-    with open(out_path, "w") as out_f:
-        for qid in question_ids:
+    with open(out_path, "a") as out_f:  # append: never clobber prior progress
+        for qid in remaining_ids:
             q_row = questions_df.loc[qid]
             retrieval = retrieval_records[qid]
 
@@ -77,4 +94,5 @@ def run_generation(
             out_f.write(json.dumps(record) + "\n")
             out_f.flush()  # ensure resume-safety even on hard crash
 
-    print(f"Wrote {len(question_ids)} records to {out_path}")
+    print(f"Wrote {len(remaining_ids)} new records to {out_path} "
+          f"({len(already_done) + len(remaining_ids)} total)")

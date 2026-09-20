@@ -1,5 +1,3 @@
-# rag-context-length — frozen experiment configuration
-
 dataset:
   name: squad
   version: "1.1"
@@ -41,23 +39,23 @@ generation:
   generation_config:
     do_sample: false
     temperature: 0
-    max_new_tokens: null       # TBD — fix during pilot
+    max_new_tokens: 20          # short spans only, per pilot finding (was null/64 -> EM~0)
     repetition_penalty: null   # TBD — fix during pilot
 
 prompt:
   template: |
     You are a question answering system.
-
+ 
     Answer the question using only the information provided in the context.
-
+ 
     If the answer cannot be determined from the context, say that the answer cannot be determined.
-
+ 
     Context:
     {retrieved_context}
-
+ 
     Question:
     {question}
-
+ 
     Answer:
 
 evaluation:

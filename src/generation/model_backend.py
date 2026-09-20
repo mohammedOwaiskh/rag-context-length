@@ -27,8 +27,8 @@ class HFBnbBackend:
     def generate(self, prompt: str) -> tuple[str, float]:
         """Returns (generated_text, generation_time_seconds)."""
         messages = [{"role": "user", "content": prompt}]
-        input_ids = self.tokenizer.apply_chat_template(
-            messages, add_generation_prompt=True, return_tensors="pt"
+        inputs = self.tokenizer.apply_chat_template(
+            messages, add_generation_prompt=True, return_tensors="pt",return_dict=True
         ).to(self.model.device)
 
         max_new_tokens = self.generation_config.get("max_new_tokens") or 64
@@ -37,7 +37,7 @@ class HFBnbBackend:
         start = time.time()
         with torch.no_grad():
             output_ids = self.model.generate(
-                input_ids,
+                **inputs,
                 max_new_tokens=max_new_tokens,
                 do_sample=self.generation_config.get("do_sample", False),
                 temperature=None,  # must be unset when do_sample=False, or HF warns/errors
@@ -46,7 +46,8 @@ class HFBnbBackend:
             )
         elapsed = time.time() - start
 
-        new_tokens = output_ids[0][input_ids.shape[-1]:]
+        input_len = inputs["input_ids"].shape[-1]
+        new_tokens = output_ids[0][input_len:]
         text = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
         return text.strip(), elapsed
 
