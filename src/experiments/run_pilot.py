@@ -46,25 +46,6 @@ def main():
     n_full = cfg["sampling"]["n_questions"]
     total_seconds = sum(t * n_full for _, t in all_gen_times)
     log.info(f"  Estimated total generation time: {total_seconds / 3600:.2f} hours")
-    log.info("  Compare against your Colab session's idle/time limits before "
-          "starting Phase 3. If this doesn't fit in one session, plan "
-          "checkpointed multi-session runs or switch to the 1.5B fallback "
-          "model now, not mid-run.")
-
-    # --- Remaining manual gate checks (not automatable) ---
-    log.info("\nRemaining checks before Phase 3 (do these manually):")
-    log.info("  - Memory: check peak VRAM usage during this run stayed well "
-          "under T4's 16GB, with margin for longer k=20 batches at scale.")
-    log.info("  - Context limits: confirm max context_token_count in the "
-          "summary above is comfortably under 32,768.")
-    log.info("  - Prompt behavior: open results_k1.jsonl and results_k20.jsonl, "
-          "manually read 10-15 generated_answer_raw values. Is the model "
-          "extracting concise spans, or hedging/verbose despite the prompt? "
-          "Adjust max_new_tokens/prompt now if needed, then freeze.")
-    log.info("  - Metric correctness: hand-check EM/F1 on ~10 examples against "
-          "manual scoring.")
-    log.info("  - Resume logic: kill this script mid-run once, restart, "
-          "confirm results_k*.jsonl has no duplicate or missing rows.")
 
 
 if __name__ == "__main__":

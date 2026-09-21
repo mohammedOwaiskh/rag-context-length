@@ -4,7 +4,9 @@ from pathlib import Path
 import pandas as pd
 
 from evaluation.metrics import compute_em_f1, postprocess_generation
+from utils.logger import setup_logger
 
+log = setup_logger("generate")
 
 def load_retrieval_records(path: str | Path) -> dict:
     """question_id -> retrieval record dict."""
@@ -53,7 +55,7 @@ def run_generation(
     already_done = load_already_done(out_path)
     remaining_ids = [qid for qid in question_ids if qid not in already_done]
     if already_done:
-        print(f"Resuming: {len(already_done)} already done, "
+        log.info(f"Resuming: {len(already_done)} already done, "
               f"{len(remaining_ids)} remaining for k={k}")
 
     from generation.prompt_template import build_prompt  # local import avoids circularity
@@ -109,5 +111,5 @@ def run_generation(
                 out_f.write(json.dumps(record) + "\n")
             out_f.flush()
 
-    print(f"Wrote {len(remaining_ids)} new records to {out_path} "
+    log.info(f"Wrote {len(remaining_ids)} new records to {out_path} "
           f"({len(already_done) + len(remaining_ids)} total)")
