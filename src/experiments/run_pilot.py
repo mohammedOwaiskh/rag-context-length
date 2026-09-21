@@ -6,7 +6,7 @@ import yaml
 
 from generation.model_backend import load_backend
 from generation.generate import run_generation
-from evaluation.aggregate import summarize_results  # noqa: F401 (see below)
+from evaluation.aggregate import summarize_results
 from utils import load_config
 from utils.logger import setup_logger
 

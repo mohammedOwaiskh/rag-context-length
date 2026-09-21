@@ -13,6 +13,9 @@ class HFBnbBackend:
             bnb_4bit_compute_dtype=torch.bfloat16,
         )
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.tokenizer.padding_side = "left"
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model = AutoModelForCausalLM.from_pretrained(
             model_name,
             quantization_config=bnb_config,
@@ -28,7 +31,10 @@ class HFBnbBackend:
         """Returns (generated_text, generation_time_seconds)."""
         messages = [{"role": "user", "content": prompt}]
         inputs = self.tokenizer.apply_chat_template(
-            messages, add_generation_prompt=True, return_tensors="pt",return_dict=True
+            messages,
+            add_generation_prompt=True,
+            return_tensors="pt",
+            return_dict=True,
         ).to(self.model.device)
 
         max_new_tokens = self.generation_config.get("max_new_tokens") or 64
@@ -40,7 +46,7 @@ class HFBnbBackend:
                 **inputs,
                 max_new_tokens=max_new_tokens,
                 do_sample=self.generation_config.get("do_sample", False),
-                temperature=None,  # must be unset when do_sample=False, or HF warns/errors
+                temperature=None,
                 repetition_penalty=repetition_penalty,
                 pad_token_id=self.tokenizer.eos_token_id,
             )
@@ -51,11 +57,52 @@ class HFBnbBackend:
         text = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
         return text.strip(), elapsed
 
+    def generate_batch(self, prompts: list[str]) -> list[tuple[str, float]]:
+        """
+        Batched version of generate(). Returns one (text, time) tuple per
+        prompt, in the same order as the input. The reported time per item
+        is the shared batch time divided evenly — not each item's true
+        individual cost, but sufficient for the reported generation_time
+        field, since the whole point of batching is that items share cost.
+        """
+        batch_messages = [[{"role": "user", "content": p}] for p in prompts]
+        inputs = self.tokenizer.apply_chat_template(
+            batch_messages,
+            add_generation_prompt=True,
+            return_tensors="pt",
+            return_dict=True,
+            padding=True,   # pad shorter prompts in the batch to the longest
+        ).to(self.model.device)
+
+        max_new_tokens = self.generation_config.get("max_new_tokens") or 64
+        repetition_penalty = self.generation_config.get("repetition_penalty") or 1.0
+
+        start = time.time()
+        with torch.no_grad():
+            output_ids = self.model.generate(
+                **inputs,
+                max_new_tokens=max_new_tokens,
+                do_sample=self.generation_config.get("do_sample", False),
+                temperature=None,
+                repetition_penalty=repetition_penalty,
+                pad_token_id=self.tokenizer.pad_token_id,
+            )
+        elapsed = time.time() - start
+        per_item_time = elapsed / len(prompts)
+
+        input_len = inputs["input_ids"].shape[-1]  # same for every item, due to left-padding
+        results = []
+        for i in range(len(prompts)):
+            new_tokens = output_ids[i][input_len:]
+            text = self.tokenizer.decode(new_tokens, skip_special_tokens=True)
+            results.append((text.strip(), per_item_time))
+        return results
+
 
 class LlamaCppGGUFBackend:
     def __init__(self, model_name: str, generation_config: dict):
         raise NotImplementedError(
-            "llama_cpp_gguf backend not yet implemented. Fill this in when "
+            "llama_cpp_gguf backend not yet implemented. To be filled in when "
             "moving to the CPU-only path — same generate() interface as "
             "HFBnbBackend so the rest of the pipeline (generate.py, "
             "run_pilot.py) requires no changes."

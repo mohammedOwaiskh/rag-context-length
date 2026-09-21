@@ -27,7 +27,7 @@ def build_context(passage_texts: list[str]) -> str:
     return "\n\n".join(passage_texts)
 
 
-def build_prompt(question: str, passage_texts: list[str]) -> str:
+def build_prompt(question: str, passage_texts: list) -> str:
     context = build_context(passage_texts)
     return TEMPLATE.format(retrieved_context=context, question=question)
 

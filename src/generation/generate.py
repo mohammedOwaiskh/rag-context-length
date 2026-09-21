@@ -6,7 +6,7 @@ import pandas as pd
 from evaluation.metrics import compute_em_f1, postprocess_generation
 
 
-def load_retrieval_records(path: str) -> dict:
+def load_retrieval_records(path: str | Path) -> dict:
     """question_id -> retrieval record dict."""
     records = {}
     with open(path, "r") as f:
@@ -16,7 +16,7 @@ def load_retrieval_records(path: str) -> dict:
     return records
 
 
-def load_already_done(out_path: str) -> set:
+def load_already_done(out_path: str | Path) -> set:
     """question_ids already written to out_path, so a resumed run skips them."""
     done = set()
     if Path(out_path).exists():
@@ -27,12 +27,17 @@ def load_already_done(out_path: str) -> set:
     return done
 
 
+def chunked(items: list, size: int):
+    for i in range(0, len(items), size):
+        yield items[i:i + size]
+
+
 def run_generation(
-        cfg: dict,
-        backend,
-        k: int,
-        question_ids: list[str],
-        out_path: str,
+    cfg: dict,
+    backend,
+    k: int,
+    question_ids: list[str],
+    out_path: str,
 ):
     questions_df = pd.read_parquet(cfg["corpus"]["questions_path"]).set_index(
         "question_id", drop=False
@@ -53,46 +58,56 @@ def run_generation(
 
     from generation.prompt_template import build_prompt  # local import avoids circularity
 
+    batch_size = cfg["generation"].get("batch_size", 8)
+
     with open(out_path, "a") as out_f:  # append: never clobber prior progress
-        for qid in remaining_ids:
-            q_row = questions_df.loc[qid]
-            retrieval = retrieval_records[qid]
+        for batch_ids in chunked(remaining_ids, batch_size):
+            batch_rows = [questions_df.loc[qid] for qid in batch_ids]
+            batch_retrievals = [retrieval_records[qid] for qid in batch_ids]
+            batch_top_k_ids = [r["retrieved_ids"][:k] for r in batch_retrievals]
+            batch_passage_texts = [
+                [corpus_df.loc[pid, "text"] for pid in ids] for ids in batch_top_k_ids
+            ]
+            batch_prompts = [
+                build_prompt(row["question"], texts)
+                for row, texts in zip(batch_rows, batch_passage_texts)
+            ]
 
-            top_k_ids = retrieval["retrieved_ids"][:k]
-            passage_texts = [corpus_df.loc[pid, "text"] for pid in top_k_ids]
+            batch_results = backend.generate_batch(batch_prompts)
 
-            prompt = build_prompt(q_row["question"], passage_texts)
-            context_token_count = backend.count_tokens("\n\n".join(passage_texts))
+            for qid, row, retrieval, top_k_ids, passage_texts, (raw_answer, gen_time) in zip(
+                batch_ids, batch_rows, batch_retrievals, batch_top_k_ids,
+                batch_passage_texts, batch_results,
+            ):
+                context_token_count = backend.count_tokens("\n\n".join(passage_texts))
+                generated_answer = postprocess_generation(raw_answer)
 
-            raw_answer, gen_time = backend.generate(prompt)
-            generated_answer = postprocess_generation(raw_answer)
+                gold_answers = list(row["gold_answers"])
+                em, f1 = compute_em_f1(generated_answer, gold_answers)
 
-            gold_answers = list(q_row["gold_answers"])
-            em, f1 = compute_em_f1(generated_answer, gold_answers)
+                gold_rank = retrieval["gold_rank"]
+                gold_retrieved = 0 <= gold_rank < k
 
-            gold_rank = retrieval["gold_rank"]
-            gold_retrieved = 0 <= gold_rank < k
-
-            record = {
-                "question_id": qid,
-                "question": q_row["question"],
-                "gold_answer": gold_answers,
-                "gold_passage_id": retrieval["gold_passage_id"],
-                "k": k,
-                "retrieved_ids": top_k_ids,
-                "retrieved_scores": retrieval["retrieved_scores"][:k],
-                "gold_rank": gold_rank,
-                "gold_retrieved": gold_retrieved,
-                "context": "\n\n".join(passage_texts),
-                "context_token_count": context_token_count,
-                "generated_answer_raw": raw_answer,
-                "generated_answer": generated_answer,
-                "exact_match": em,
-                "f1": f1,
-                "generation_time": gen_time,
-            }
-            out_f.write(json.dumps(record) + "\n")
-            out_f.flush()  # ensure resume-safety even on hard crash
+                record = {
+                    "question_id": qid,
+                    "question": row["question"],
+                    "gold_answer": gold_answers,
+                    "gold_passage_id": retrieval["gold_passage_id"],
+                    "k": k,
+                    "retrieved_ids": top_k_ids,
+                    "retrieved_scores": retrieval["retrieved_scores"][:k],
+                    "gold_rank": gold_rank,
+                    "gold_retrieved": gold_retrieved,
+                    "context": "\n\n".join(passage_texts),
+                    "context_token_count": context_token_count,
+                    "generated_answer_raw": raw_answer,
+                    "generated_answer": generated_answer,
+                    "exact_match": em,
+                    "f1": f1,
+                    "generation_time": gen_time,
+                }
+                out_f.write(json.dumps(record) + "\n")
+            out_f.flush()
 
     print(f"Wrote {len(remaining_ids)} new records to {out_path} "
           f"({len(already_done) + len(remaining_ids)} total)")

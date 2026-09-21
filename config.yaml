@@ -1,3 +1,5 @@
+# rag-context-length — frozen experiment configuration
+
 dataset:
   name: squad
   version: "1.1"
@@ -27,6 +29,7 @@ retrieval:
 
 generation:
   backend: hf_bnb   # hf_bnb (GPU, Colab T4) | llama_cpp_gguf (CPU-only)
+  batch_size: 8     # To lowered when the T4 hits OOM Error
   model:
     hf_bnb: Qwen/Qwen2.5-3B-Instruct
     llama_cpp_gguf: Qwen/Qwen2.5-3B-Instruct-GGUF   # Q4_K_M quant
@@ -39,23 +42,23 @@ generation:
   generation_config:
     do_sample: false
     temperature: 0
-    max_new_tokens: 20          # short spans only, per pilot finding (was null/64 -> EM~0)
-    repetition_penalty: null   # TBD — fix during pilot
+    max_new_tokens: 20
+    repetition_penalty: null
 
 prompt:
   template: |
     You are a question answering system.
- 
+
     Answer the question using only the information provided in the context.
- 
+
     If the answer cannot be determined from the context, say that the answer cannot be determined.
- 
+
     Context:
     {retrieved_context}
- 
+
     Question:
     {question}
- 
+
     Answer:
 
 evaluation:
@@ -83,5 +86,5 @@ paths:
   distractor_results_dir: results/distractor/
 
 reproducibility:
-  library_versions: null   # TBD — fill after environment setup
-  hardware: null           # TBD — fill per actual run, e.g. "Colab T4" or "local CPU, 16GB RAM"
+  library_versions: null
+  hardware: null
