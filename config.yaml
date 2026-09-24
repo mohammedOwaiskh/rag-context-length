@@ -29,7 +29,7 @@ retrieval:
 
 generation:
   backend: hf_bnb   # hf_bnb (GPU, Colab T4) | llama_cpp_gguf (CPU-only)
-  batch_size: 4 # Lowered for k = 10 and 20       #8     # To be lowered when the T4 hits OOM Error
+  batch_size: 2     #4 # Lowered for k = 10 and 20       #8     # To be lowered when the T4 hits OOM Error
   model:
     hf_bnb: Qwen/Qwen2.5-3B-Instruct
     llama_cpp_gguf: Qwen/Qwen2.5-3B-Instruct-GGUF   # Q4_K_M quant
