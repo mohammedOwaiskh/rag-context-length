@@ -4,6 +4,9 @@ from pathlib import Path
 import pandas as pd
 
 from utils import load_config
+from utils.logger import setup_logger
+
+log = setup_logger("aggregate")
 
 
 def load_results_for_k(results_dir: str, k: int) -> pd.DataFrame:
@@ -44,11 +47,11 @@ def summarize_results(cfg: dict, results_dir: str) -> pd.DataFrame:
 def main():
     cfg = load_config()
     summary = summarize_results(cfg, results_dir=cfg["paths"]["main_results_dir"])
-    print(summary.to_string(index=False))
+    log.info(summary.to_string(index=False))
 
     out_path = Path(cfg["paths"]["main_results_dir"]) / "summary_table.csv"
     summary.to_csv(out_path, index=False)
-    print(f"\nSaved summary table to {out_path}")
+    log.info(f"\nSaved summary table to {out_path}")
 
 
 if __name__ == "__main__":

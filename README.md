@@ -78,14 +78,8 @@ python -m experiments.run_pilot
 # Phase 3 — main experiment (1,500 questions × 5 k-values)
 python -m experiments.run_main_experiment
 
-# Phase 4 — aggregate results
-python -m evaluation.aggregate
-
-# Phase 5 — distractor experiment
-python -m experiments.run_distractor_experiment
-
-# Phase 6 — evidence-position experiment (optional)
-python -m experiments.run_position_experiment
+# Phase 4 — plot results
+python -m evaluation.make_plots
 ```
 
 On Colab, use `notebooks/colab_runner.ipynb`, which calls the same scripts.

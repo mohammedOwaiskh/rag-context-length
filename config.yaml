@@ -66,15 +66,6 @@ evaluation:
   metrics_library: huggingface_evaluate
   metric_name: squad
 
-distractor_experiment:
-  seed: 42
-  conditions:
-    - {name: D0, relevant: 1, distractors: 0}
-    - {name: D1, relevant: 1, distractors: 1}
-    - {name: D3, relevant: 1, distractors: 3}
-    - {name: D5, relevant: 1, distractors: 5}
-    - {name: D9, relevant: 1, distractors: 9}
-
 pilot:
   n_questions: 75
   selection: first_75_of_sampled_1500
@@ -83,7 +74,7 @@ paths:
   results_dir: results/
   pilot_results_dir: results/pilot/
   main_results_dir: results/main/
-  distractor_results_dir: results/distractor/
+  poster_plots_dir: results/main/plots/
 
 reproducibility:
   library_versions: null
