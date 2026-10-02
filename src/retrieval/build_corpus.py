@@ -8,6 +8,7 @@ log = setup_logger("build_corpus")
 
 
 def build_corpus(cfg: dict):
+    """Load the configured SQuAD split and return its unique contexts as a dataframe."""
     log.info("Building corpus")
     log.info("Loading dataset")
 
@@ -33,6 +34,7 @@ def build_corpus(cfg: dict):
 
 
 def main():
+    """Build the passage corpus and save it to the configured Parquet path."""
     cfg = load_config()
 
     out_path = get_project_root() / cfg["corpus"]["paths"]["passages"]

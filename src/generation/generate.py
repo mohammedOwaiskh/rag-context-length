@@ -9,7 +9,7 @@ from utils.logger import setup_logger
 log = setup_logger("generate")
 
 def load_retrieval_records(path: str | Path) -> dict:
-    """question_id -> retrieval record dict."""
+    """Read JSONL retrieval records into a mapping keyed by question ID."""
     records = {}
     with open(path, "r") as f:
         for line in f:
@@ -19,7 +19,7 @@ def load_retrieval_records(path: str | Path) -> dict:
 
 
 def load_already_done(out_path: str | Path) -> set:
-    """question_ids already written to out_path, so a resumed run skips them."""
+    """Return question IDs already present in an output JSONL file, if it exists."""
     done = set()
     if Path(out_path).exists():
         with open(out_path, "r") as f:
@@ -30,6 +30,7 @@ def load_already_done(out_path: str | Path) -> set:
 
 
 def chunked(items: list, size: int):
+    """Yield consecutive slices of ``items`` containing at most ``size`` elements."""
     for i in range(0, len(items), size):
         yield items[i:i + size]
 
@@ -41,6 +42,11 @@ def run_generation(
     question_ids: list[str],
     out_path: str,
 ):
+    """Generate and score answers for ``question_ids`` at retrieval depth ``k``.
+
+    Existing output records are preserved and skipped, allowing interrupted runs
+    to resume. Newly completed question records are appended to ``out_path``.
+    """
     questions_df = pd.read_parquet(cfg["corpus"]["questions_path"]).set_index(
         "question_id", drop=False
     )

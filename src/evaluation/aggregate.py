@@ -10,12 +10,14 @@ log = setup_logger("aggregate")
 
 
 def load_results_for_k(results_dir: str, k: int) -> pd.DataFrame:
+    """Load the JSONL generation results for one retrieval depth into a dataframe."""
     path = Path(results_dir) / f"results_k{k}.jsonl"
     rows = [json.loads(line) for line in open(path, "r")]
     return pd.DataFrame(rows)
 
 
 def summarize_results(cfg: dict, results_dir: str) -> pd.DataFrame:
+    """Aggregate answer, retrieval, and context-length metrics for each configured k."""
     rows = []
     for k in cfg["retrieval"]["k_values"]:
         df = load_results_for_k(results_dir, k)
@@ -45,6 +47,7 @@ def summarize_results(cfg: dict, results_dir: str) -> pd.DataFrame:
 
 
 def main():
+    """Summarize configured result files and write the summary table as CSV."""
     cfg = load_config()
     summary = summarize_results(cfg, results_dir=cfg["paths"]["main_results_dir"])
     log.info(summary.to_string(index=False))

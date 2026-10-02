@@ -13,6 +13,7 @@ log = setup_logger("run_full_experiment")
 
 
 def main():
+    """Run all configured retrieval-depth conditions and summarize completed results."""
     cfg = load_config()
 
     questions_df = pd.read_parquet(cfg["corpus"]["questions_path"])

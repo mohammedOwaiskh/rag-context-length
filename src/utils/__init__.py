@@ -10,6 +10,7 @@ def get_project_root() -> Path:
 
 
 def load_config(path: str | Path = get_project_root() / "config.yaml") -> dict:
+    """Load and return the YAML configuration from ``path``."""
     with open(path, "r") as f:
         return yaml.safe_load(f)
 

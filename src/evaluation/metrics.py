@@ -4,6 +4,7 @@ from evaluation.normalize import normalize_answer
 
 
 def _f1_single(prediction: str, gold: str) -> float:
+    """Compute token-overlap F1 for one prediction and one normalized reference."""
     pred_tokens = normalize_answer(prediction).split()
     gold_tokens = normalize_answer(gold).split()
 
@@ -22,15 +23,18 @@ def _f1_single(prediction: str, gold: str) -> float:
 
 
 def _em_single(prediction: str, gold: str) -> int:
+    """Return 1 when normalized prediction and reference strings match exactly."""
     return int(normalize_answer(prediction) == normalize_answer(gold))
 
 
 def compute_em_f1(prediction: str, gold_answers: list[str]) -> tuple[int, float]:
     """
-    prediction: model's (post-processed) generated answer string
-    gold_answers: list of acceptable gold answer strings for this question
+    Args:
+        prediction: Model's post-processed generated answer.
+        gold_answers: Acceptable reference answers for the question.
 
-    Returns (exact_match, f1), each the max score over all gold answers.
+    Returns:
+        The maximum exact-match and token-F1 scores over the references.
     """
     if not gold_answers:
         # SQuAD v1.1 train questions always have >=1 gold answer; guard anyway
@@ -43,9 +47,8 @@ def compute_em_f1(prediction: str, gold_answers: list[str]) -> tuple[int, float]
 
 def postprocess_generation(raw_text: str) -> str:
     """
-    Light cleanup applied identically across all k-conditions before scoring.
-    Log raw vs. post-processed separately (see generate.py) so verbosity
-    trends across k can still be inspected.
+    Removes surrounding whitespace and quotes and an optional ``Answer:``
+    prefix. Apply identically across retrieval-depth conditions before scoring.
     """
     text = raw_text.strip()
     if text.lower().startswith("answer:"):

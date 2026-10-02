@@ -9,6 +9,7 @@ from utils.logger import setup_logger
 log = setup_logger("sample_questions")
 
 def sample_questions(cfg: dict) -> pd.DataFrame:
+    """Sample a reproducible set of questions and their gold passage identifiers."""
     ds = load_dataset("rajpurkar/squad", split=cfg["dataset"]["hf_split"])
     ds = ds.shuffle(seed=cfg["sampling"]["seed"])
     n = cfg["sampling"]["n_questions"]
@@ -30,7 +31,7 @@ def sample_questions(cfg: dict) -> pd.DataFrame:
 
 
 def verify_gold_linkage(questions_df: pd.DataFrame, corpus_path: str):
-    """Every gold_passage_id must exist in the corpus, or Recall@k is meaningless."""
+    """Raise ``ValueError`` if any question's gold passage is absent from the corpus."""
     corpus_df = pd.read_parquet(corpus_path)
     corpus_ids = set(corpus_df["passage_id"])
     missing = ~questions_df["gold_passage_id"].isin(corpus_ids)
@@ -44,6 +45,7 @@ def verify_gold_linkage(questions_df: pd.DataFrame, corpus_path: str):
 
 
 def main():
+    """Sample questions, verify their corpus linkage, and save them as Parquet."""
     cfg = load_config()
 
     out_path = get_project_root() / cfg["corpus"]["questions_path"]

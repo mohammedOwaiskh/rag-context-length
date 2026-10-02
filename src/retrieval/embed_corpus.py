@@ -12,6 +12,7 @@ from utils.logger import setup_logger
 log = setup_logger("embed_corpus")
 
 def embed_passages(df: pd.DataFrame, model_name: str, batch_size: int) -> np.ndarray:
+    """Encode passage texts as L2-normalized float32 embeddings in dataframe order."""
     model = SentenceTransformer(model_name)
     log.info(f"Encoding {len(df)} passages with {model_name} (batch_size={batch_size})...")
     embeddings = model.encode(
@@ -25,6 +26,7 @@ def embed_passages(df: pd.DataFrame, model_name: str, batch_size: int) -> np.nda
 
 
 def build_faiss_index(embeddings: np.ndarray) -> faiss.Index:
+    """Build an inner-product FAISS index from the supplied passage embeddings."""
     dim = embeddings.shape[1]
     index = faiss.IndexFlatIP(dim)
     index.add(embeddings)
@@ -33,6 +35,7 @@ def build_faiss_index(embeddings: np.ndarray) -> faiss.Index:
 
 
 def main():
+    """Embed the configured corpus and persist its FAISS index and passage order."""
     cfg = load_config()
     corpus_path = get_project_root() / cfg["corpus"]["paths"]["passages"]
     index_path = get_project_root() / cfg["corpus"]["paths"]["faiss_index"]

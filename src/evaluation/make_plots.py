@@ -12,13 +12,23 @@ log = setup_logger("make_plots")
 
 
 def load_all_k(results_dir: str, k_values: list[int]) -> pd.DataFrame:
-    """Concatenate per-k result files (as written by generate.py) into one long-format dataframe."""
+    """Concatenate per-k generation result files into one long-format dataframe."""
     frames = [load_results_for_k(results_dir, k) for k in k_values]
     return pd.concat(frames, ignore_index=True)
 
 
 def bootstrap_ci(values: np.ndarray, n_boot: int, seed: int, alpha: float = 0.05):
-    """Percentile bootstrap CI for the mean of `values`."""
+    """Return the percentile bootstrap confidence interval for the sample mean.
+
+    Args:
+        values: Observed metric values.
+        n_boot: Number of bootstrap resamples.
+        seed: Seed used to make resampling reproducible.
+        alpha: Total probability excluded from the interval's tails.
+
+    Returns:
+        The lower and upper confidence bounds, or ``(nan, nan)`` for no values.
+    """
     if len(values) == 0:
         return (np.nan, np.nan)
     rng = np.random.default_rng(seed)
@@ -33,18 +43,23 @@ def bootstrap_ci(values: np.ndarray, n_boot: int, seed: int, alpha: float = 0.05
 
 
 def build_plot_data(df: pd.DataFrame, k_values: list[int], n_boot: int, seed: int) -> pd.DataFrame:
-    """Point estimates + bootstrap CIs per k, using this project's fixed column names
-    (f1, gold_retrieved) directly rather than remapping — generate.py's schema is the
-    only schema this script needs to support."""
+    """Calculate metric means and bootstrap intervals for each retrieval depth.
+
+    Uses the result schema produced by ``generate.py`` and includes overall F1,
+    exact match, Recall@k, and F1 conditional on retrieving the gold passage.
+    """
     records = []
     for k in k_values:
         g = df[df["k"] == k]
         f1_vals = g["f1"].to_numpy(dtype=float)
+        em_vals = g["exact_match"].to_numpy(dtype=float)
         retrieved_mask = g["gold_retrieved"].astype(bool)
 
         f1_mean = f1_vals.mean()
+        em_mean = em_vals.mean()
         recall_at_k = retrieved_mask.mean()
         f1_lo, f1_hi = bootstrap_ci(f1_vals, n_boot=n_boot, seed=seed)
+        em_lo, em_hi = bootstrap_ci(em_vals, n_boot=n_boot, seed=seed)
 
         cond_f1_vals = g.loc[retrieved_mask, "f1"].to_numpy(dtype=float)
         cond_f1_mean = cond_f1_vals.mean() if len(cond_f1_vals) else np.nan
@@ -56,6 +71,9 @@ def build_plot_data(df: pd.DataFrame, k_values: list[int], n_boot: int, seed: in
             "f1": f1_mean,
             "f1_ci_lo": f1_lo,
             "f1_ci_hi": f1_hi,
+            "em": em_mean,
+            "em_ci_lo": em_lo,
+            "em_ci_hi": em_hi,
             "conditional_f1_given_retrieved": cond_f1_mean,
             "conditional_f1_ci_lo": cond_f1_lo,
             "conditional_f1_ci_hi": cond_f1_hi,
@@ -64,17 +82,21 @@ def build_plot_data(df: pd.DataFrame, k_values: list[int], n_boot: int, seed: in
 
 
 def plot_recall_f1_vs_k(summary: pd.DataFrame, outpath: str):
+    """Plot Recall@k, F1, and exact match against retrieval depth and save the figure."""
     fig, ax1 = plt.subplots(figsize=(6, 4.2), dpi=300)
 
     color_f1 = "#1f77b4"
+    color_em = "#2ca02c"
     color_recall = "#d62728"
 
     ax1.set_xlabel("Retrieval depth (k)")
-    ax1.set_ylabel("Answer F1", color=color_f1)
-    ax1.plot(summary["k"], summary["f1"], marker="o", color=color_f1, label="Answer F1")
+    ax1.set_ylabel("Answer score (F1 / EM)")
+    ax1.plot(summary["k"], summary["f1"], marker="o", color=color_f1, label="F1")
     ax1.fill_between(summary["k"], summary["f1_ci_lo"], summary["f1_ci_hi"],
                      color=color_f1, alpha=0.15)
-    ax1.tick_params(axis="y", labelcolor=color_f1)
+    ax1.plot(summary["k"], summary["em"], marker="^", color=color_em, label="EM")
+    ax1.fill_between(summary["k"], summary["em_ci_lo"], summary["em_ci_hi"],
+                     color=color_em, alpha=0.15)
     ax1.set_xticks(summary["k"])
 
     ax2 = ax1.twinx()
@@ -95,6 +117,7 @@ def plot_recall_f1_vs_k(summary: pd.DataFrame, outpath: str):
 
 
 def plot_conditional_f1_vs_k(summary: pd.DataFrame, outpath: str):
+    """Plot overall and gold-retrieval-conditional F1 against depth and save the figure."""
     fig, ax = plt.subplots(figsize=(6, 4.2), dpi=300)
 
     ax.plot(summary["k"], summary["f1"], marker="o", label="F1 (all questions)",
@@ -119,6 +142,7 @@ def plot_conditional_f1_vs_k(summary: pd.DataFrame, outpath: str):
 
 
 def main():
+    """Load configured result files, compute plot data, and save both figures."""
     cfg = load_config()
 
     outdir = cfg["paths"]["main_results_dir"]

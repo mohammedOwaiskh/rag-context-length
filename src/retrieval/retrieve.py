@@ -12,6 +12,7 @@ from utils.logger import setup_logger
 log = setup_logger("retrieve")
 
 def load_index_and_order(cfg: dict):
+    """Load the FAISS index and matching position-to-passage-ID mapping."""
     index_path = get_project_root() / cfg["corpus"]["paths"]["faiss_index"]
     order_path = Path(index_path).with_suffix(".order.parquet")
 
@@ -23,6 +24,7 @@ def load_index_and_order(cfg: dict):
 
 
 def embed_questions(questions_df: pd.DataFrame, model_name: str) -> np.ndarray:
+    """Encode question texts as L2-normalized float32 query embeddings."""
     model = SentenceTransformer(model_name)
     log.info(f"Encoding {len(questions_df)} questions with {model_name}...")
     embeddings = model.encode(
@@ -35,11 +37,13 @@ def embed_questions(questions_df: pd.DataFrame, model_name: str) -> np.ndarray:
 
 
 def retrieve_top20(index, query_embeddings: np.ndarray, top_k: int = 20):
+    """Search the index and return similarity scores and positions for each query."""
     scores, positions = index.search(query_embeddings, top_k)
     return scores, positions
 
 
 def build_retrieval_records(questions_df, scores, positions, position_to_passage_id):
+    """Create per-question retrieval records, including each gold passage's rank."""
     records = []
     for i, row in questions_df.reset_index(drop=True).iterrows():
         retrieved_ids = [position_to_passage_id[p] for p in positions[i]]
@@ -59,6 +63,7 @@ def build_retrieval_records(questions_df, scores, positions, position_to_passage
 
 
 def compute_recall_at_k(records, k_values):
+    """Calculate the fraction of records with a gold passage in the first ``k`` results."""
     n = len(records)
     recall = {}
     for k in k_values:
@@ -68,6 +73,7 @@ def compute_recall_at_k(records, k_values):
 
 
 def main():
+    """Run configured retrieval, save per-question results, and report Recall@k."""
     cfg = load_config()
 
     questions_df = pd.read_parquet(get_project_root() / cfg["corpus"]["questions_path"])

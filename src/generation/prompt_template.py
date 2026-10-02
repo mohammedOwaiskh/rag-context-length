@@ -28,6 +28,6 @@ def build_context(passage_texts: list[str]) -> str:
 
 
 def build_prompt(question: str, passage_texts: list) -> str:
+    """Insert the question and retrieved passages into the shared answer prompt."""
     context = build_context(passage_texts)
     return TEMPLATE.format(retrieved_context=context, question=question)
-

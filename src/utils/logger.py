@@ -11,13 +11,15 @@ ERROR = logging.ERROR
 def setup_logger(name: str, log_level=logging.INFO) -> logging.Logger:
     """
     Configure and return a logger instance with both file and console handlers.
-    
+
+    Reuses existing handlers if this logger has already been configured.
+
     Args:
-        name: Logger name (typically __name__)
-        log_level: Logging level (default: INFO)
-    
+        name: Logger name, typically the calling module's name.
+        log_level: Minimum level emitted by the handlers.
+
     Returns:
-        Configured logger instance
+        The configured logger.
     """
     logger = logging.getLogger(name)
 

@@ -3,6 +3,7 @@ import string
 
 
 def normalize_answer(text: str) -> str:
+    """Lowercase an answer and remove punctuation, articles, and extra whitespace."""
     text = text.lower()
 
     # remove punctuation

@@ -5,7 +5,10 @@ from transformers import AutoModelForCausalLM, AutoTokenizer, BitsAndBytesConfig
 
 
 class HFBnbBackend:
+    """Generate answers using a Hugging Face causal LM loaded in 4-bit NF4."""
+
     def __init__(self, model_name: str, generation_config: dict):
+        """Load the tokenizer and quantized model with the supplied generation settings."""
         print(f"Loading {model_name} in 4-bit (nf4) via bitsandbytes...")
         bnb_config = BitsAndBytesConfig(
             load_in_4bit=True,
@@ -25,10 +28,11 @@ class HFBnbBackend:
         self.generation_config = generation_config
 
     def count_tokens(self, text: str) -> int:
+        """Return the number of model tokens in ``text`` without special tokens."""
         return len(self.tokenizer.encode(text, add_special_tokens=False))
 
     def generate(self, prompt: str) -> tuple[str, float]:
-        """Returns (generated_text, generation_time_seconds)."""
+        """Generate one answer and return its text and elapsed generation time in seconds."""
         messages = [{"role": "user", "content": prompt}]
         inputs = self.tokenizer.apply_chat_template(
             messages,
@@ -100,7 +104,10 @@ class HFBnbBackend:
 
 
 class LlamaCppGGUFBackend:
+    """Placeholder for the not-yet-implemented llama.cpp GGUF generation backend."""
+
     def __init__(self, model_name: str, generation_config: dict):
+        """Raise ``NotImplementedError`` because this backend is not implemented."""
         raise NotImplementedError(
             "llama_cpp_gguf backend not yet implemented. To be filled in when "
             "moving to the CPU-only path — same generate() interface as "
@@ -110,6 +117,7 @@ class LlamaCppGGUFBackend:
 
 
 def load_backend(cfg: dict):
+    """Instantiate the generation backend selected by the configuration."""
     backend_name = cfg["generation"]["backend"]
     model_name = cfg["generation"]["model"][backend_name]
     generation_config = cfg["generation"]["generation_config"]

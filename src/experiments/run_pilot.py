@@ -13,6 +13,7 @@ from utils.logger import setup_logger
 log = setup_logger("run_pilot")
 
 def main():
+    """Run generation on the configured pilot subset and report timing and metrics."""
     cfg = load_config()
 
     questions_df = pd.read_parquet(cfg["corpus"]["questions_path"])
